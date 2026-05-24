@@ -1,41 +1,34 @@
 import argparse
 import numpy as np
-import os
-import matplotlib.pyplot as plt
-import open3d as o3d
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--input", required=True, help="Caminho para o ficheiro .xyzc de entrada")
 args, _ = parser.parse_known_args()
 
-data = np.loadtxt(args.input)
+file_path = f"/content/parsenet-codebase/assets/{args.input}"
+data = np.loadtxt(file_path)
 X, Y, Z, Cluster = data[:, 0], data[:, 1], data[:, 2], data[:, 3]
-points = np.column_stack([X, Y, Z])
 
-vis = o3d.visualization.Visualizer()
-vis.create_window(window_name="ParseNet Segmentation", width=1400, height=600)
+fig = make_subplots(
+    rows=1, cols=2,
+    specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]],
+    subplot_titles=("Objeto Inicial (Original)", "Objeto Segmentado pela IA")
+)
 
-# Nuvem original (azul)
-pcd_original = o3d.geometry.PointCloud()
-pcd_original.points = o3d.utility.Vector3dVector(points)
-pcd_original.paint_uniform_color([0.1, 0.4, 0.9])
-vis.add_geometry(pcd_original)
+fig.add_trace(
+    go.Scatter3d(x=X, y=Y, z=Z, mode='markers',
+                 marker=dict(size=2.5, color='royalblue', opacity=0.8), name="Original"),
+    row=1, col=1
+)
 
-# Nuvem segmentada (cores por cluster)
-pcd_segmented = o3d.geometry.PointCloud()
-pcd_segmented.points = o3d.utility.Vector3dVector(points)
-colors = plt.cm.turbo(Cluster / Cluster.max())[:, :3]
-pcd_segmented.colors = o3d.utility.Vector3dVector(colors)
-vis.add_geometry(pcd_segmented)
+fig.add_trace(
+    go.Scatter3d(x=X, y=Y, z=Z, mode='markers',
+                 marker=dict(size=2.5, color=Cluster, colorscale='Turbo', opacity=0.8), name="Segmentado"),
+    row=1, col=2
+)
 
-# Guardar imagem
-base_name = os.path.splitext(os.path.basename(args.input))[0]
-image_name = base_name.replace("_down_segmented", "") + ".jpg"
-os.makedirs("imagens", exist_ok=True)
-output_image_path = os.path.join("imagens", image_name)
+fig.update_layout(title_text="Comparativo ParseNet: Antes vs Depois", height=600, showlegend=False)
 
-vis.capture_screen_image(output_image_path)
-print(f"Imagem guardada em: {output_image_path}")
-
-vis.run()
-vis.destroy_window()
+fig.show()
