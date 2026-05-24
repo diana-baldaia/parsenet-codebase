@@ -8,7 +8,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--input", required=True, help="Caminho para o ficheiro .xyzc de entrada")
 args, _ = parser.parse_known_args()
 
-data = np.loadtxt(args.input)
+file_path = f"/content/parsenet-codebase/assets/{args.input}"
+
+data = np.loadtxt(file_path)
 X, Y, Z, Cluster = data[:, 0], data[:, 1], data[:, 2], data[:, 3]
 
 fig = make_subplots(
@@ -30,17 +32,5 @@ fig.add_trace(
 )
 
 fig.update_layout(title_text="Comparativo ParseNet: Antes vs Depois", height=600, showlegend=False)
-
-# Guardar imagem JPG
-base_name = os.path.splitext(os.path.basename(args.input))[0]
-image_name = base_name.replace("_down_segmented", "") + ".jpg"
-os.makedirs("imagens", exist_ok=True)
-output_image_path = os.path.join("imagens", image_name)
-
-try:
-    fig.write_image(output_image_path)
-    print(f"Imagem guardada em: {output_image_path}")
-except Exception as e:
-    print(f"Aviso: não foi possível guardar a imagem. Instala kaleido: pip install kaleido")
 
 fig.show()
