@@ -68,19 +68,16 @@ def simple_mean_shift(embedding, quantile=0.015):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", default="./assets/abc_00470.xyz", help="Caminho para o ficheiro .xyz de entrada")
+    parser.add_argument("--input", default="abc_00470.xyz", help="Nome do ficheiro .xyz dentro da pasta assets")
     args, _ = parser.parse_known_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Executando no dispositivo: {device}")
 
-    os.makedirs("./assets", exist_ok=True)
-    path_in = args.input
+    path_in = os.path.join("./assets", args.input)
     if not os.path.exists(path_in):
-        print("Arquivo de exemplo não encontrado. Gerando nuvem de pontos sintética para o teste...")
-        # Cria 1000 pontos aleatórios (X, Y, Z) simulando um objeto 3D
-        dummy_points = np.random.rand(1000, 3).astype(np.float32)
-        np.savetxt(path_in, dummy_points)
+        print(f"Erro: ficheiro '{path_in}' não encontrado. Execução terminada.")
+        exit(1)
 
     pth_path = "./logs/results/parsenet_no_normals.pth/parsenet_no_normals.pth"
 
@@ -116,7 +113,8 @@ if __name__ == "__main__":
     embedding = torch.nn.functional.normalize(embedding[0].T, p=2, dim=1)
     cluster_ids = simple_mean_shift(embedding, quantile=0.015)
 
-    output_path = path_in.replace(".xyz", "_prediction.xyzc")
+    base_name = os.path.splitext(os.path.basename(path_in))[0]
+    output_path = os.path.join("./assets", f"{base_name}_segmented.xyzc")
     np.savetxt(
         output_path,
         np.hstack([points, cluster_ids.numpy()[:, None]]),
