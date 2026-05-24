@@ -31,4 +31,5 @@ fig.add_trace(
 
 fig.update_layout(title_text="Comparativo ParseNet: Antes vs Depois", height=600, showlegend=False)
 
-fig.show()
+file_name = args.input.split('_')[:-2]
+fig.write_html(f'{file_name}.html')
