@@ -67,12 +67,15 @@ def simple_mean_shift(embedding, quantile=0.015):
     return torch.tensor(cluster_ids)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", default="./assets/abc_00470.xyz", help="Caminho para o ficheiro .xyz de entrada")
+    args, _ = parser.parse_known_args()
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Executando no dispositivo: {device}")
 
-    # --- CRIADOR DE DADOS DE TESTE (Garante que o arquivo exista) ---
     os.makedirs("./assets", exist_ok=True)
-    path_in = "./assets/abc_00470.xyz"
+    path_in = args.input
     if not os.path.exists(path_in):
         print("Arquivo de exemplo não encontrado. Gerando nuvem de pontos sintética para o teste...")
         # Cria 1000 pontos aleatórios (X, Y, Z) simulando um objeto 3D
