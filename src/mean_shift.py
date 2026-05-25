@@ -152,9 +152,9 @@ class MeanShift:
         uniques, counts_ = np.unique(membership.data.cpu().numpy(), return_counts=True)
 
         # count of the number of points belonging to unique cluster ids above
-        counts = torch.from_numpy(counts_.astype(np.float32)).cuda(torch.get_device(centers))
+        counts = torch.from_numpy(counts_.astype(np.float32)).to(centers.device)
 
-        num_mem_cluster = torch.zeros((X.shape[0])).cuda(torch.get_device(centers))
+        num_mem_cluster = torch.zeros((X.shape[0]), device=centers.device)
 
         # Contains the count of number of points belonging to a
         # unique cluster

@@ -77,9 +77,7 @@ def get_graph_feature(x, k1=20, k2=20, idx=None):
     if idx is None:
         idx = knn(x, k1=k1, k2=k2)
 
-    device = torch.device('cuda')
-
-    idx_base = torch.arange(0, batch_size, device=device).view(-1, 1, 1) * num_points
+    idx_base = torch.arange(0, batch_size, device=x.device).view(-1, 1, 1) * num_points
 
     idx = idx + idx_base
 
@@ -114,9 +112,7 @@ def get_graph_feature_with_normals(x, k1=20, k2=20, idx=None):
     if idx is None:
         idx = knn_points_normals(x, k1=k1, k2=k2)
 
-    device = torch.device('cuda')
-
-    idx_base = torch.arange(0, batch_size, device=device).view(-1, 1, 1) * num_points
+    idx_base = torch.arange(0, batch_size, device=x.device).view(-1, 1, 1) * num_points
 
     idx = idx + idx_base
 
@@ -285,7 +281,7 @@ class PrimitivesEmbeddingDGCNGn(nn.Module):
         if compute_loss:
             embed_loss = self.loss_function(embedding, labels.data.cpu().numpy())
         else:
-            embed_loss = torch.zeros(1).cuda()
+            embed_loss = torch.zeros(1, device=points.device)
         return embedding, primitives_log_prob, embed_loss
 
 

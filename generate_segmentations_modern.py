@@ -1,32 +1,10 @@
 import argparse
 import numpy as np
 import torch
-import torch.nn as nn
 import os
 
-# --- Arquitetura Corrigida Baseada no arquivo .pth Real ---
-class PrimitivesEmbeddingDGCNGn(nn.Module):
-    def __init__(self, num_channels=3):
-        super(PrimitivesEmbeddingDGCNGn, self).__init__()
-        # Dimensões exatas reveladas pelo erro de mismatch:
-        # conv1: entrada de 1280 canais (características empilhadas do DGCN), saída de 512
-        self.conv1 = nn.Conv1d(1280, 512, 1)
-        # conv2: entrada de 512, saída de 256
-        self.conv2 = nn.Conv1d(512, 256, 1)
-        
-        # GroupNorms alinhados com o arquivo de pesos
-        self.bn1 = nn.GroupNorm(32, 512) # Ajustado para bater com o tamanho 512
-        self.bn2 = nn.GroupNorm(16, 256) # Ajustado para bater com o tamanho 256
-        
-    def forward(self, x, dummy1=None, dummy2=False):
-        # Como o modelo original usa uma extração DGCN complexa antes desse bloco para chegar a 1280 canais,
-        # vamos expandir artificialmente os canais X para fins de validação do pipeline
-        if x.shape[1] != 1280:
-            x = x.repeat(1, int(1280 / x.shape[1]) + 1, 1)[:, :1280, :]
-            
-        x = torch.relu(self.bn1(self.conv1(x)))
-        x = torch.relu(self.bn2(self.conv2(x)))
-        return x, None, None
+from src.PointNet import PrimitivesEmbeddingDGCNGn
+from src.mean_shift import MeanShift
 
 # --- Utilitários de Geometria ---
 def pca_numpy(points):
@@ -57,14 +35,6 @@ def normalize_points(points):
     points = points / (np.max(std) + EPS)
     return points.astype(np.float32)
 
-def simple_mean_shift(embedding, quantile=0.015):
-    from sklearn.cluster import MeanShift as SklearnMeanShift
-    X = embedding.cpu().numpy()
-    bandwidth = quantile * np.max(np.std(X, axis=0))
-    if bandwidth <= 0: bandwidth = 0.1
-    ms = SklearnMeanShift(bandwidth=bandwidth, bin_seeding=True)
-    cluster_ids = ms.fit_predict(X)
-    return torch.tensor(cluster_ids)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -81,42 +51,50 @@ if __name__ == "__main__":
 
     pth_path = "./logs/results/parsenet_no_normals.pth/parsenet_no_normals.pth"
 
-    model = PrimitivesEmbeddingDGCNGn()
-    model = torch.nn.DataParallel(model, device_ids=[0])
+    model = PrimitivesEmbeddingDGCNGn(
+        embedding=True,
+        emb_size=128,
+        primitives=True,
+        num_primitives=10,
+        loss_function=None,
+        mode=0,
+        num_channels=3,
+    )
     model.to(device)
     model.eval()
-    
-    # Carregando pesos
+
     checkpoint = torch.load(pth_path, map_location=device)
-    
-    # Limpa as chaves para bater com o encapsulamento do DataParallel do script
+
+    # Strip 'module.' prefix from DataParallel-saved weights
     clean_checkpoint = {}
     for k, v in checkpoint.items():
-        if not k.startswith("module."):
-            clean_checkpoint[f"module.{k}"] = v
-        else:
-            clean_checkpoint[k] = v
+        clean_key = k[len("module."):] if k.startswith("module.") else k
+        clean_checkpoint[clean_key] = v
 
-    try:
-        model.load_state_dict(clean_checkpoint, strict=False)
-        print("Pesos do modelo sincronizados e carregados com sucesso!")
-    except Exception as e:
-        print(f"Aviso no carregamento: {e}")
+    missing, unexpected = model.load_state_dict(clean_checkpoint, strict=False)
+    if missing:
+        print(f"Chaves em falta no checkpoint: {missing}")
+    if unexpected:
+        print(f"Chaves extra no checkpoint (ignoradas): {unexpected}")
+    print("Pesos do modelo carregados com sucesso!")
 
     points = np.loadtxt(path_in).astype(np.float32)
     points_norm = normalize_points(points)
     points_tensor = torch.from_numpy(points_norm)[None, :].to(device)
 
     with torch.no_grad():
-        embedding, _, _ = model(points_tensor.permute(0, 2, 1))
-    
+        dummy_labels = torch.zeros(1, points_tensor.shape[1], dtype=torch.long).to(device)
+        embedding, _, _ = model(points_tensor.permute(0, 2, 1), dummy_labels, False)
+
     embedding = torch.nn.functional.normalize(embedding[0].T, p=2, dim=1)
-    cluster_ids = simple_mean_shift(embedding, quantile=0.015)
+    ms = MeanShift()
+    _, _, cluster_ids = ms.guard_mean_shift(embedding, quantile=0.015, iterations=10)
 
     base_name = os.path.splitext(os.path.basename(path_in))[0]
     output_path = os.path.join("./assets", f"{base_name}_segmented.xyzc")
     np.savetxt(
         output_path,
-        np.hstack([points, cluster_ids.numpy()[:, None]]),
+        np.hstack([points, cluster_ids.data.cpu().numpy()[:, None]]),
     )
-    print(f"\n🚀 SUCESSO! O modelo processou os dados. Predição salva em: {output_path}")
+    print(f"\nSUCESSO! Predição salva em: {output_path}")
+    print(f"Número de segmentos encontrados: {len(np.unique(cluster_ids.data.cpu().numpy()))}")
