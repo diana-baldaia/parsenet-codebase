@@ -38,13 +38,13 @@ def normalize_points(points):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", default="abc_00470.xyz", help="Nome do ficheiro .xyz dentro da pasta assets")
+    parser.add_argument("--input", default="abc_00470.xyz", help="Caminho do ficheiro .xyz dentro da pasta assets")
     args, _ = parser.parse_known_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Executando no dispositivo: {device}")
 
-    path_in = os.path.join("./assets", args.input)
+    path_in = args.input
     if not os.path.exists(path_in):
         print(f"Erro: ficheiro '{path_in}' não encontrado. Execução terminada.")
         exit(1)
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     _, _, cluster_ids = ms.guard_mean_shift(embedding, quantile=0.015, iterations=10)
 
     base_name = os.path.splitext(os.path.basename(path_in))[0]
-    output_path = os.path.join("./assets", f"{base_name}_segmented.xyzc")
+    output_path = os.path.join(f"{base_name}_segmented.xyzc")
     np.savetxt(
         output_path,
         np.hstack([points, cluster_ids.data.cpu().numpy()[:, None]]),

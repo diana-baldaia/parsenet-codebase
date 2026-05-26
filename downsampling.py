@@ -3,18 +3,15 @@ import argparse
 import numpy as np
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--input", required=True, help="Nome do ficheiro .xyz de entrada (ex: ship_hull.xyz)")
-parser.add_argument("--output", default=None, help="Nome do ficheiro .xyz de saída (opcional)")
+parser.add_argument("--input", required=True, help="Caminho do ficheiro .xyz de entrada")
 args, _ = parser.parse_known_args()  # parse_known_args para compatibilidade com Colab
 
-nome_do_ficheiro_xyz = args.input
-nome_output = args.output or os.path.splitext(nome_do_ficheiro_xyz)[0] + "_downs.xyz"
+caminho_original = args.input
+caminho_output = os.path.splitext(args.input)[0] + "_downs.xyz"
 
-caminho_original = f"assets\{nome_do_ficheiro_xyz}"
-caminho_otimizado = f"assets\{nome_output}"
 
 if os.path.exists(caminho_original):
-    print(f"A abrir o ficheiro gigante {nome_do_ficheiro_xyz}...")
+    print(f"A abrir o ficheiro gigante {args.input}...")
 
     pontos = []
     with open(caminho_original, 'r') as f:
@@ -73,9 +70,9 @@ if os.path.exists(caminho_original):
 
     # Guarda o ficheiro leve, geométrico e normalizado
     os.makedirs("/content/parsenet-codebase/assets", exist_ok=True)
-    np.savetxt(caminho_otimizado, vertices, fmt='%.6f')
+    np.savetxt(caminho_output, vertices, fmt='%.6f')
     print(f"Otimização concluída! Formato final dos vértices: {vertices.shape}")
     print(f"Limites reais pós-normalização: Min={vertices.min():.2f} / Max={vertices.max():.2f}\n")
 
 else:
-    print(f"Erro: O ficheiro '{nome_do_ficheiro_xyz}' não foi encontrado.")
+    print(f"Erro: O ficheiro '{args.input}' não foi encontrado.")

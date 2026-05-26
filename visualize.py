@@ -7,8 +7,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--input", required=True, help="Caminho para o ficheiro .xyzc de entrada")
 args, _ = parser.parse_known_args()
 
-#file_path = f"/content/parsenet-codebase/assets/{args.input}"
-file_path = f"assets\{args.input}"
+file_path = args.input
 data = np.loadtxt(file_path)
 X, Y, Z, Cluster = data[:, 0], data[:, 1], data[:, 2], data[:, 3]
 
