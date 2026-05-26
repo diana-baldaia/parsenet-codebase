@@ -10,8 +10,8 @@ args, _ = parser.parse_known_args()  # parse_known_args para compatibilidade com
 nome_do_ficheiro_xyz = args.input
 nome_output = args.output or os.path.splitext(nome_do_ficheiro_xyz)[0] + "_downs.xyz"
 
-caminho_original = f"/content/parsenet-codebase/assets/{nome_do_ficheiro_xyz}"
-caminho_otimizado = f"/content/parsenet-codebase/assets/{nome_output}"
+caminho_original = f"assets\{nome_do_ficheiro_xyz}"
+caminho_otimizado = f"assets\{nome_output}"
 
 if os.path.exists(caminho_original):
     print(f"A abrir o ficheiro gigante {nome_do_ficheiro_xyz}...")
@@ -45,7 +45,7 @@ if os.path.exists(caminho_original):
     # =================================================================
     # PASSO 2: DOWNSAMPLING INTELIGENTE (Substitui o random puro)
     # =================================================================
-    MAX_POINTS = 10000
+    MAX_POINTS = 20000
     if num_pontos_original > MAX_POINTS:
         print(f"A reduzir a nuvem para {MAX_POINTS:,} pontos de forma geométrica...")
 
