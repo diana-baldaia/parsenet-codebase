@@ -42,7 +42,7 @@ if os.path.exists(caminho_original):
     # =================================================================
     # PASSO 2: DOWNSAMPLING INTELIGENTE (Substitui o random puro)
     # =================================================================
-    MAX_POINTS = 20000
+    MAX_POINTS = 50000
     if num_pontos_original > MAX_POINTS:
         print(f"A reduzir a nuvem para {MAX_POINTS:,} pontos de forma geométrica...")
 
